@@ -182,7 +182,11 @@ cat >> /etc/caddy/Caddyfile <<'OCROUTES'
         reverse_proxy 127.0.0.1:11435
     }
     handle_path /cdp/* {
-        reverse_proxy 127.0.0.1:9222
+        # Chrome's DevTools HTTP endpoint only accepts localhost/IP Host
+        # headers — rewrite it or it 500s on proxied requests.
+        reverse_proxy 127.0.0.1:9222 {
+            header_up Host {upstream_hostport}
+        }
     }
     handle_path /vnc/* {
         reverse_proxy 127.0.0.1:8300
