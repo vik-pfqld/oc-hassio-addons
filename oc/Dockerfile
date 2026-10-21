@@ -19,7 +19,8 @@ USER root
 RUN apt-get update -qq \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
       python3 python3-pip python3-venv curl ca-certificates cron tmux jq socat \
-      xz-utils unzip git zstd xvfb x11vnc websockify novnc chromium fonts-liberation \
+      xz-utils unzip git zstd openssl tar xvfb x11vnc websockify novnc \
+      chromium fonts-liberation \
  && rm -rf /var/lib/apt/lists/*
 
 # Caddy — prebuilt binary from the official download API.

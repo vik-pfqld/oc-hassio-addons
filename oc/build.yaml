@@ -3,4 +3,4 @@ build_from:
 args: {}
 labels:
   io.hass.type: addon
-  io.hass.version: 2.2.3
+  io.hass.version: 2.3.0

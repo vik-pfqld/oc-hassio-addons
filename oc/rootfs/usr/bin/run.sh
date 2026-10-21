@@ -237,6 +237,21 @@ sup_loop app       /usr/local/bin/oc-svc-app.sh
 sleep 5
 sup_loop caddy /usr/local/bin/oc-svc-caddy.sh
 
+# ------------------------------------------------ acme renewal (v2.3.0) ----
+# DuckDNS cert renewal now lives INSIDE the add-on: acme.sh state is
+# persisted at /data/acme.sh (seeded once, survives updates), the daily cron
+# drives oc-acme-renew.sh which installs into caddy's cert dir + reloads.
+# Cron is started here so renewal works even with the sandbox option off.
+if [ -x /data/acme.sh/acme.sh ]; then
+    printf '# OC Stack DuckDNS cert renewal (acme.sh, DNS-01)\n23 2 * * * root /usr/local/bin/oc-acme-renew.sh >> /run/oc-log-acme.log 2>&1\n' \
+        > /etc/cron.d/oc-acme-renew
+    chmod 0644 /etc/cron.d/oc-acme-renew
+    log "acme renewal cron installed (/data/acme.sh present)"
+else
+    log "NOTE: /data/acme.sh not found — cert renewal unavailable (seed it to enable)"
+fi
+service cron start 2>/dev/null || true
+
 # --------------------------------------------------------------- hold PID1 --
 log "all services launched — supervising"
 while true; do
