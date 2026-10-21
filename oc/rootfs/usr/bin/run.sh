@@ -172,19 +172,19 @@ sed -i '$d' /etc/caddy/Caddyfile
 cat >> /etc/caddy/Caddyfile <<'OCROUTES'
 
     # ---- OC internal ports via the one caddy door (oc-hassio-addons) ----
-    handle /ttyd/* {
+    handle_path /ttyd/* {
         reverse_proxy 127.0.0.1:7681
     }
-    handle /ollama/* {
+    handle_path /ollama/* {
         reverse_proxy 127.0.0.1:11434
     }
-    handle /ollama2/* {
+    handle_path /ollama2/* {
         reverse_proxy 127.0.0.1:11435
     }
-    handle /cdp/* {
+    handle_path /cdp/* {
         reverse_proxy 127.0.0.1:9222
     }
-    handle /vnc/* {
+    handle_path /vnc/* {
         reverse_proxy 127.0.0.1:8300
     }
     redir /ttyd  /ttyd/

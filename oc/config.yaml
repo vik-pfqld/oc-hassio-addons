@@ -1,5 +1,5 @@
 name: OC Stack
-version: "2.1.0"
+version: "2.1.1"
 slug: oc
 description: The ai-bundle OC stack as one HAOS add-on — Ollama cloud relays (11434/11435), OpenClaw gateway, Caddy reverse proxy, the Claude Code sandbox (ttyd :7681) and the warm Chromium scraper (CDP :9222, noVNC :8300).
 arch:
