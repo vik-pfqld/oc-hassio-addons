@@ -1,5 +1,5 @@
 name: OC Stack
-version: "2.2.2"
+version: "2.2.3"
 slug: oc
 description: The ai-bundle OC stack as one HAOS add-on — Ollama cloud relays, OpenClaw, Caddy reverse proxy, the Claude Code sandbox (ttyd) and the warm Chromium scraper. Everything internal is served via caddy at :8127 (routes /ttyd, /ollama, /ollama2, /cdp, /vnc); only :8127 and ttyd's :7681 publish host ports.
 arch:
