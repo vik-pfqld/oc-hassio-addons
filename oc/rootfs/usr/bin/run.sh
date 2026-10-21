@@ -122,14 +122,17 @@ ln -s "$AIB/openclaw-data/workspace" /app/workspace
 ln -s "$AIB/workspace"               /app/sharedworkspace
 ln -s "$AIB/openclaw-data"           /home/node/.openclaw
 
-# Caddy: LOCAL state on /data (the add-on's data dir). The old container
-# bound caddy-data at /data, so the Caddyfile's /data/caddy/certs paths keep
-# working unchanged — seed the certs from the NAS copy once, then serve.
+# Caddy: LOCAL state mirroring the old container layout — the old bind put
+# caddy-data AT /data, and the Caddyfile's literal cert path is
+# /data/caddy/certs/... — so XDG_DATA_HOME=/data and that exact path must
+# exist on the local SSD. Seed once from the NAS copy (read-only source).
 # (v1.x had a /data/caddy-data -> CIFS symlink from debugging; remove it.)
 [ -L /data/caddy-data ] && rm -f /data/caddy-data
-[ -d /data/caddy-data ] || { mkdir -p /data/caddy-data; cp -a "$AIB/caddy-data/caddy/certs" /data/caddy-data/caddy/certs 2>/dev/null && log "seeded caddy certs from NAS (copy)"; }
-mkdir -p /data/caddy-config /data/caddy-data/caddy/certs 2>/dev/null || true
-[ -f /data/caddy-data/caddy/certs/fullchain.pem ] || { mkdir -p /data/caddy-data/caddy/certs; cp -a "$AIB/caddy-data/caddy/certs/." /data/caddy-data/caddy/certs/ 2>/dev/null && log "seeded caddy certs"; }
+rm -rf /data/caddy-data 2>/dev/null
+mkdir -p /data/caddy/certs /config
+if [ ! -f /data/caddy/certs/fullchain.pem ]; then
+    cp -a "$AIB/caddy-data/caddy/certs/." /data/caddy/certs/ 2>/dev/null && log "seeded caddy certs to /data/caddy/certs"
+fi
 
 # Caddyfile: derive the loopback variant from the NAS original every boot.
 # (cert paths stay /data/caddy/certs — now the LOCAL copy)
