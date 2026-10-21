@@ -9,13 +9,13 @@
 #    portal 9001, gate 8899, crons)
 #
 # All persistent data stays on the NAS md1 volume, seen through the HA
-# Supervisor CIFS mount at /share/aibundle (zero copy). The sandbox piece is
+# Supervisor CIFS mount at /share/docker/ai-bundle (zero copy). The sandbox piece is
 # opt-in via the `sandbox_enabled` option so a staging boot can't write the
 # shared workspace while the NAS sandbox is still the live one.
 set -u
 
 log() { echo "[oc-supervisor] [$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
-export AIB="${AIB:-/share/aibundle}"
+export AIB="${AIB:-/share/docker/ai-bundle}"
 export SANDBOX_ENABLED=false CHROMIUM_ENABLED=true
 
 # ---------------------------------------------------------------- options ---

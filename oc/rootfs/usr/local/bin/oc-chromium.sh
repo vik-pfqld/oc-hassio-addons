@@ -6,7 +6,7 @@
 # manual warm-up flow (browse realestate.com.au, log in, cookies persist).
 set -u
 export DISPLAY=:99
-PROFILE="${OC_CHROME_PROFILE:-/share/aibundle/chrome-profile}"
+PROFILE="${OC_CHROME_PROFILE:-/share/docker/ai-bundle/chrome-profile}"
 mkdir -p "$PROFILE"
 
 # 1) Virtual display (sized to be usable in a browser tab for warm-ups)

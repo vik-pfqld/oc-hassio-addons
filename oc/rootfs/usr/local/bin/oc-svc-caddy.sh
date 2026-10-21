@@ -5,7 +5,7 @@
 # Caddyfile. Data/config live on the NAS via the CIFS mount, so LE certs and
 # the internal-CA state move with it.
 set -u
-AIB="${AIB:-/share/aibundle}"
+AIB="${AIB:-/share/docker/ai-bundle}"
 export XDG_DATA_HOME="$AIB/caddy-data"
 export XDG_CONFIG_HOME="$AIB/caddy-config"
 exec /usr/local/bin/caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
