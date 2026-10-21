@@ -8,6 +8,7 @@
 # whenever the files changed. Runs daily from /etc/cron.d/oc-acme-renew
 # (installed by run.sh). Safe to run any time.
 set -u
+PATH=/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 AH=/data/acme.sh
 WK=/workspace/property_tracker/certs/duckdns
 CD=/data/caddy/certs
@@ -18,7 +19,7 @@ if [ -f "$WK/fullchain.pem" ] && ! cmp -s "$WK/fullchain.pem" "$CD/fullchain.pem
     cp -f "$WK/fullchain.pem" "$CD/fullchain.pem"
     cp -f "$WK/key.pem" "$CD/key.pem"
     echo "[oc-acme] cert files updated in $CD — reloading caddy"
-    caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1 \
+    /usr/local/bin/caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1 \
         && echo "[oc-acme] caddy reloaded OK" \
         || echo "[oc-acme] WARN: caddy reload failed — retries next run"
 else
