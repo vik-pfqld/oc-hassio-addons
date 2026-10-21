@@ -9,6 +9,10 @@
 ARG BUILD_FROM=openclaw/openclaw:latest
 FROM ${BUILD_FROM}
 
+# The openclaw image defaults to its node user for runtime AND build; apt
+# needs root here, and the add-on itself runs as root.
+USER root
+
 # Debian bookworm deps: the sandbox toolchain + the chromium/noVNC graphics
 # stack + caddy/ollama download helpers. startup.sh re-runs apt itself if
 # anything is missing (idempotent), this just removes the cold-boot penalty.
