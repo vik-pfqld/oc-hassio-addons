@@ -37,9 +37,15 @@ RUN curl -fsSL -o /tmp/ollama.tar.zst \
 COPY rootfs/ /
 
 # Ensure the bundled scripts are executable regardless of git exec-bit loss.
-RUN chmod 0755 /usr/bin/run.sh /usr/bin/oc-chromium-pass \
+RUN chmod 0755 /usr/bin/run.sh /usr/bin/oc-chromium-pass /usr/local/bin/oc-health.sh \
+
       /usr/local/bin/oc-chromium.sh /usr/local/bin/oc-logs /usr/local/bin/oc-svc-*.sh
 
 # The HA add-on runs as root; tini (from the base image) reaps the
 # supervisor's children.
 ENTRYPOINT ["/usr/bin/tini", "-s", "--", "/usr/bin/run.sh"]
+
+# Add-on health contract: the supervisor + Portainer expect a healthcheck;
+# openclaw base has none of the hassio-base plumbing, so provide our own.
+HEALTHCHECK --interval=20s --timeout=10s --start-period=150s --retries=3 \
+    CMD /usr/local/bin/oc-health.sh
