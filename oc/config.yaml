@@ -27,7 +27,7 @@ options:
   quota_proxy_url: http://127.0.0.1:8787
   quota_upstream: http://127.0.0.1:11434
   quota_upstream_remap: "http://ollama:11434=http://127.0.0.1:11434,http://ollama2:11434=http://127.0.0.1:11435"
-  pt_web_port: 18127
+  pt_web_port: "18127"
   gateway_password: ollama
   novnc_password: changeme123
 schema:
