@@ -1,1 +1,5 @@
-[]
+{
+    "name": "OC addons",
+    "url": "https://github.com/vik-pfqld/oc-hassio-addons",
+    "maintainer": "vik-pfqld"
+}
