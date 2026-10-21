@@ -20,11 +20,13 @@ options:
   sandbox_enabled: false
   chromium_enabled: true
   openclaw_enabled: false
+  side_by_side: false
   novnc_password: changeme123
 schema:
   sandbox_enabled: bool
   chromium_enabled: bool
   openclaw_enabled: bool
+  side_by_side: bool
   novnc_password: str?
 host_network: false
 hassio_api: false

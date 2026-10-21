@@ -1,11 +1,9 @@
 #!/bin/bash
 # ollama :cloud relay #1 (caps account) — was: ai-ollama container, host port 11434.
-# The NAS dir ollama-data IS the .ollama content; a $HOME symlink exposes it.
+# v2.0: state is LOCAL (/data/ollama-home). Pure :cloud relay: no local models.
 set -u
-AIB="${AIB:-/share/aibundle}"
-mkdir -p "$AIB/ollama-home"
-ln -sfn "$AIB/ollama-data" "$AIB/ollama-home/.ollama"
-exec env HOME="$AIB/ollama-home" \
-    OLLAMA_HOST=0.0.0.0:11434 \
-    OLLAMA_MODELS="$AIB/ollama-data/models" \
+export HOME="/data/ollama-home"
+mkdir -p "$HOME/.ollama" 2>/dev/null || true
+exec env OLLAMA_HOST=0.0.0.0:11434 \
+    OLLAMA_MODELS=/data/ollama-data \
     /usr/bin/ollama serve

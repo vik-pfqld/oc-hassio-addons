@@ -24,6 +24,7 @@ if [ -f "$OPTS" ]; then
     SANDBOX_ENABLED="$(jq -r 'if (.sandbox_enabled | type) == "boolean" then .sandbox_enabled else "false" end' "$OPTS" 2>/dev/null || echo false)"
     CHROMIUM_ENABLED="$(jq -r 'if (.chromium_enabled | type) == "boolean" then .chromium_enabled else "true" end' "$OPTS" 2>/dev/null || echo true)"
     OPENCLAW_ENABLED="$(jq -r 'if (.openclaw_enabled | type) == "boolean" then .openclaw_enabled else "false" end' "$OPTS" 2>/dev/null || echo false)"
+    SIDE_BY_SIDE="$(jq -r 'if (.side_by_side | type) == "boolean" then .side_by_side else "false" end' "$OPTS" 2>/dev/null || echo false)"
     NOVNC_PW="$(jq -r 'if (.novnc_password | type) == "string" then .novnc_password else "" end' "$OPTS" 2>/dev/null || true)"
 else
     log "WARNING: no /data/options.json — using defaults"
@@ -31,8 +32,10 @@ fi
 [ -n "$SANDBOX_ENABLED" ]   || SANDBOX_ENABLED=false
 [ -n "$CHROMIUM_ENABLED" ]  || CHROMIUM_ENABLED=true
 [ -n "$OPENCLAW_ENABLED" ]  || OPENCLAW_ENABLED=false
+[ -n "$SIDE_BY_SIDE" ]      || SIDE_BY_SIDE=false
 [ -n "$NOVNC_PW" ]          || NOVNC_PW=changeme123
-export SANDBOX_ENABLED CHROMIUM_ENABLED OPENCLAW_ENABLED
+export SANDBOX_ENABLED CHROMIUM_ENABLED OPENCLAW_ENABLED SIDE_BY_SIDE
+log "options: sandbox=$SANDBOX_ENABLED chromium=$CHROMIUM_ENABLED openclaw=$OPENCLAW_ENABLED side_by_side=$SIDE_BY_SIDE"
 
 # ---------------------------------------------------------------- env ------
 # Loopback rewrites: inside one container the old compose DNS aliases
@@ -71,9 +74,37 @@ if [ ! -f "$AIB/Caddyfile" ] || [ ! -d "$AIB/workspace" ]; then
 fi
 log "CIFS mount OK: $AIB"
 
-# /workspace -> same NAS dir as the old ai-claudecode-web bind.
-# (rm -rf on a symlink removes the link only, never the CIFS target.)
-rm -rf /workspace && ln -s "$AIB/workspace" /workspace
+# v2.0 DATA MODEL: the workspace is a LOCAL COPY on the add-on's /data (the
+# HA SSD); only bulk media (downloads) stays on the NAS, read-mostly, via the
+# CIFS mount. ollama + caddy state are local too. The NAS originals are never
+# written by this add-on.
+if [ ! -d /data/workspace ]; then
+    log "FATAL: /data/workspace (the copied workspace) not present — copy step missing"
+    exit 1
+fi
+rm -rf /workspace && ln -s /data/workspace /workspace
+
+# Downloads stay shared: the local copy has no downloads dir, so wire it to
+# the NAS via the CIFS mount (read-mostly; the viewer's index DB lives LOCAL
+# under /data/viewer-work, see below).
+rm -rf /data/workspace/downloads && ln -s "$AIB/workspace/downloads" /data/workspace/downloads
+
+# Scrolller viewer local index root: its DB is <root>/_browser_state.sqlite3
+# (viewer.py:43) inside the scanned root — give it a LOCAL root with
+# subfolder symlinks into the shared downloads so it never double-writes the
+# NAS viewer's DB during side-by-side.
+mkdir -p /data/viewer-work
+if [ -d "$AIB/workspace/downloads" ]; then
+    for d in "$AIB/workspace/downloads"/*/; do
+        [ -d "$d" ] && ln -sfn "$d" "/data/viewer-work/$(basename "$d")"
+    done
+fi
+# Patch the copied startup.sh so the viewer scans the local root (idempotent).
+sed -i 's| -m scrolller_scraper\.viewer /workspace/downloads | -m scrolller_scraper.viewer /data/viewer-work |g' \
+    /data/workspace/startup.sh 2>/dev/null || true
+
+# Ollama: local state dirs (identities + any models); NAS dirs left alone.
+mkdir -p /data/ollama-data /data/ollama2-data
 
 # OpenClaw data paths — same layout the docker binds produced on the NAS.
 # NOTE: this only matters when openclaw runs INSIDE the add-on (option). When
@@ -91,18 +122,17 @@ ln -s "$AIB/openclaw-data/workspace" /app/workspace
 ln -s "$AIB/workspace"               /app/sharedworkspace
 ln -s "$AIB/openclaw-data"           /home/node/.openclaw
 
-# Ollama identity homes: the NAS dirs ARE the .ollama content; give each
-# instance a $HOME whose .ollama path points at its NAS dir.
-mkdir -p "$AIB/ollama-home" "$AIB/ollama2-home"
-ln -sfn "$AIB/ollama-data"  "$AIB/ollama-home/.ollama"
-ln -sfn "$AIB/ollama2-data" "$AIB/ollama2-home/.ollama"
-
-# Chromium profile (persisted Kasada cookies / logins).
-mkdir -p "$AIB/chrome-profile"
+# Caddy: LOCAL state on /data (the add-on's data dir). The old container
+# bound caddy-data at /data, so the Caddyfile's /data/caddy/certs paths keep
+# working unchanged — seed the certs from the NAS copy once, then serve.
+# (v1.x had a /data/caddy-data -> CIFS symlink from debugging; remove it.)
+[ -L /data/caddy-data ] && rm -f /data/caddy-data
+[ -d /data/caddy-data ] || { mkdir -p /data/caddy-data; cp -a "$AIB/caddy-data/caddy/certs" /data/caddy-data/caddy/certs 2>/dev/null && log "seeded caddy certs from NAS (copy)"; }
+mkdir -p /data/caddy-config /data/caddy-data/caddy/certs 2>/dev/null || true
+[ -f /data/caddy-data/caddy/certs/fullchain.pem ] || { mkdir -p /data/caddy-data/caddy/certs; cp -a "$AIB/caddy-data/caddy/certs/." /data/caddy-data/caddy/certs/ 2>/dev/null && log "seeded caddy certs"; }
 
 # Caddyfile: derive the loopback variant from the NAS original every boot.
-# Also rewrite the absolute /data/caddy/certs path (the old container bound
-# caddy-data at /data; this add-on shares the real path directly).
+# (cert paths stay /data/caddy/certs — now the LOCAL copy)
 mkdir -p /etc/caddy
 # Where the /openclaw route lands depends on whether the gateway is bundled
 # (127.0.0.1) or still runs on the NAS during the migration.
@@ -116,9 +146,8 @@ sed -e 's/ai-claudecode-web:8899/127.0.0.1:8899/g' \
     -e 's/ai-claudecode-web:8000/127.0.0.1:8000/g' \
     -e 's/ai-claudecode-web:9001/127.0.0.1:9001/g' \
     -e "s|openclaw:18789|$OC_UPSTREAM|g" \
-    -e "s|/data/caddy/certs/|$AIB/caddy-data/caddy/certs/|g" \
     "$AIB/Caddyfile" > /etc/caddy/Caddyfile
-log "Caddyfile derived (loopback upstreams + certs path; /openclaw -> $OC_UPSTREAM)"
+log "Caddyfile derived (loopback upstreams; /openclaw -> $OC_UPSTREAM)"
 
 # ---------------------------------------------------- service supervision ---
 # Each service = one launcher script (rootfs/usr/local/bin/oc-svc-*.sh) run by
