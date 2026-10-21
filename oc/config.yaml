@@ -1,7 +1,7 @@
 name: OC Stack
-version: "2.1.3"
+version: "2.2.0"
 slug: oc
-description: The ai-bundle OC stack as one HAOS add-on — Ollama cloud relays (11434/11435), OpenClaw gateway, Caddy reverse proxy, the Claude Code sandbox (ttyd :7681) and the warm Chromium scraper (CDP :9222, noVNC :8300).
+description: The ai-bundle OC stack as one HAOS add-on — Ollama cloud relays, OpenClaw, Caddy reverse proxy, the Claude Code sandbox (ttyd) and the warm Chromium scraper. Everything internal is served via caddy at :8127 (routes /ttyd, /ollama, /ollama2, /cdp, /vnc); only :8127 and ttyd's :7681 publish host ports.
 arch:
   - amd64
 startup: services
@@ -12,21 +12,40 @@ map:
 ports:
   7681/tcp: 7681
   8127/tcp: 8127
-  11434/tcp: 11434
-  11435/tcp: 11435
-  9222/tcp: 9222
-  8300/tcp: 8300
 options:
   sandbox_enabled: false
   chromium_enabled: true
   openclaw_enabled: false
   side_by_side: false
+  # ---- service env (edit here; run.sh applies after restart) ----
+  anthropic_base_url: http://127.0.0.1:11434
+  anthropic_api_key: local_ollama_bypass
+  anthropic_model: glm-5.2:cloud
+  anthropic_default_sonnet_model: qwen3.6:cloud
+  anthropic_default_opus_model: minimax-m2.7:cloud
+  ollama_base_url: http://127.0.0.1:11434
+  quota_proxy_url: http://127.0.0.1:8787
+  quota_upstream: http://127.0.0.1:11434
+  quota_upstream_remap: "http://ollama:11434=http://127.0.0.1:11434,http://ollama2:11434=http://127.0.0.1:11435"
+  pt_web_port: 18127
+  gateway_password: ollama
   novnc_password: changeme123
 schema:
   sandbox_enabled: bool
   chromium_enabled: bool
   openclaw_enabled: bool
   side_by_side: bool
+  anthropic_base_url: str?
+  anthropic_api_key: str?
+  anthropic_model: str?
+  anthropic_default_sonnet_model: str?
+  anthropic_default_opus_model: str?
+  ollama_base_url: str?
+  quota_proxy_url: str?
+  quota_upstream: str?
+  quota_upstream_remap: str?
+  pt_web_port: str?
+  gateway_password: str?
   novnc_password: str?
 host_network: false
 hassio_api: false
@@ -34,7 +53,4 @@ homeassistant_api: false
 full_access: false
 privileged: []
 apparmor: true
-devices: []
-usb: false
-uart: false
 stage: stable

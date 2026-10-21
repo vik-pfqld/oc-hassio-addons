@@ -38,14 +38,26 @@ export SANDBOX_ENABLED CHROMIUM_ENABLED OPENCLAW_ENABLED SIDE_BY_SIDE
 log "options: sandbox=$SANDBOX_ENABLED chromium=$CHROMIUM_ENABLED openclaw=$OPENCLAW_ENABLED side_by_side=$SIDE_BY_SIDE"
 
 # ---------------------------------------------------------------- env ------
-# Loopback rewrites: inside one container the old compose DNS aliases
-# (ollama, ollama2, ai-claudecode-web, openclaw) don't resolve.
-export QUOTA_UPSTREAM="http://127.0.0.1:11434"
-export QUOTA_UPSTREAM_REMAP="http://ollama:11434=http://127.0.0.1:11434,http://ollama2:11434=http://127.0.0.1:11435"
-export QUOTA_PROXY_URL="http://127.0.0.1:8787"
-export PT_WEB_PORT="18127"          # caddy itself owns the host-facing :8127
-export OLLAMA_BASE_URL="http://127.0.0.1:11434"
-export ANTHROPIC_BASE_URL="http://127.0.0.1:11434"
+# Service env: all configurable via the add-on options (Settings → Add-ons →
+# OC Stack); compose-era values as defaults. Inside one container the old
+# compose DNS aliases (ollama, ai-claudecode-web, openclaw) don't resolve, so
+# the loopback URLs are the norm.
+get_opt() {
+    local v
+    v="$(jq -r --arg k "$1" 'if (.[$k] | type) == "string" then .[$k] else empty end' "$OPTS" 2>/dev/null)"
+    if [ -n "$v" ]; then printf '%s' "$v"; else printf '%s' "$2"; fi
+}
+export QUOTA_UPSTREAM="$(get_opt quota_upstream http://127.0.0.1:11434)"
+export QUOTA_UPSTREAM_REMAP="$(get_opt quota_upstream_remap 'http://ollama:11434=http://127.0.0.1:11434,http://ollama2:11434=http://127.0.0.1:11435')"
+export QUOTA_PROXY_URL="$(get_opt quota_proxy_url http://127.0.0.1:8787)"
+export PT_WEB_PORT="$(get_opt pt_web_port 18127)"   # caddy owns the host-facing :8127
+export OLLAMA_BASE_URL="$(get_opt ollama_base_url http://127.0.0.1:11434)"
+export ANTHROPIC_BASE_URL="$(get_opt anthropic_base_url http://127.0.0.1:11434)"
+export ANTHROPIC_API_KEY="$(get_opt anthropic_api_key local_ollama_bypass)"
+export ANTHROPIC_MODEL="$(get_opt anthropic_model glm-5.2:cloud)"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="$(get_opt anthropic_default_sonnet_model qwen3.6:cloud)"
+export ANTHROPIC_DEFAULT_OPUS_MODEL="$(get_opt anthropic_default_opus_model minimax-m2.7:cloud)"
+export OPENCLAW_GATEWAY_PASSWORD="$(get_opt gateway_password ollama)"
 # OpenClaw gateway env (identical to the NAS compose envs)
 export NODE_ENV=production
 export OPENCLAW_GATEWAY_MODE=local
