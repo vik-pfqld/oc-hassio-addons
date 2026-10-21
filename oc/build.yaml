@@ -1,0 +1,6 @@
+build_from:
+  amd64: openclaw/openclaw:latest
+args: {}
+labels:
+  io.hass.type: addon
+  io.hass.version: 1.0.0
