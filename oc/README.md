@@ -9,7 +9,7 @@ scraper browser.
 
 All state stays on the **NAS md1 volume** `/volume1/Docker/ai-bundle`, exposed
 to this add-on through a Home Assistant Supervisor CIFS mount named
-`aibundle` → visible at `/share/docker/ai-bundle`:
+`aibundle` → visible at `/share/aibundle`:
 
 | Add-on path | NAS source |
 |---|---|
