@@ -16,21 +16,23 @@ set -u
 
 log() { echo "[oc-supervisor] [$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 export AIB="${AIB:-/share/aibundle}"
-export SANDBOX_ENABLED=false CHROMIUM_ENABLED=true
+export SANDBOX_ENABLED=false CHROMIUM_ENABLED=true OPENCLAW_ENABLED=false
 
 # ---------------------------------------------------------------- options ---
 OPTS=/data/options.json
 if [ -f "$OPTS" ]; then
     SANDBOX_ENABLED="$(jq -r 'if (.sandbox_enabled | type) == "boolean" then .sandbox_enabled else "false" end' "$OPTS" 2>/dev/null || echo false)"
     CHROMIUM_ENABLED="$(jq -r 'if (.chromium_enabled | type) == "boolean" then .chromium_enabled else "true" end' "$OPTS" 2>/dev/null || echo true)"
+    OPENCLAW_ENABLED="$(jq -r 'if (.openclaw_enabled | type) == "boolean" then .openclaw_enabled else "false" end' "$OPTS" 2>/dev/null || echo false)"
     NOVNC_PW="$(jq -r 'if (.novnc_password | type) == "string" then .novnc_password else "" end' "$OPTS" 2>/dev/null || true)"
 else
     log "WARNING: no /data/options.json — using defaults"
 fi
-[ -n "$SANDBOX_ENABLED" ]  || SANDBOX_ENABLED=false
-[ -n "$CHROMIUM_ENABLED" ] || CHROMIUM_ENABLED=true
-[ -n "$NOVNC_PW" ]         || NOVNC_PW=changeme123
-export SANDBOX_ENABLED CHROMIUM_ENABLED
+[ -n "$SANDBOX_ENABLED" ]   || SANDBOX_ENABLED=false
+[ -n "$CHROMIUM_ENABLED" ]  || CHROMIUM_ENABLED=true
+[ -n "$OPENCLAW_ENABLED" ]  || OPENCLAW_ENABLED=false
+[ -n "$NOVNC_PW" ]          || NOVNC_PW=changeme123
+export SANDBOX_ENABLED CHROMIUM_ENABLED OPENCLAW_ENABLED
 
 # ---------------------------------------------------------------- env ------
 # Loopback rewrites: inside one container the old compose DNS aliases
@@ -74,6 +76,8 @@ log "CIFS mount OK: $AIB"
 rm -rf /workspace && ln -s "$AIB/workspace" /workspace
 
 # OpenClaw data paths — same layout the docker binds produced on the NAS.
+# NOTE: this only matters when openclaw runs INSIDE the add-on (option). When
+# disabled, the NAS gateway keeps running and caddy routes /openclaw to it.
 for p in /app/config /app/workspace /app/sharedworkspace /home/node/.openclaw; do
     [ -L "$p" ] && rm -f "$p"
     if [ -e "$p" ]; then
@@ -100,14 +104,21 @@ mkdir -p "$AIB/chrome-profile"
 # Also rewrite the absolute /data/caddy/certs path (the old container bound
 # caddy-data at /data; this add-on shares the real path directly).
 mkdir -p /etc/caddy
+# Where the /openclaw route lands depends on whether the gateway is bundled
+# (127.0.0.1) or still runs on the NAS during the migration.
+if [ "$OPENCLAW_ENABLED" = "true" ]; then
+    OC_UPSTREAM="127.0.0.1:18789"
+else
+    OC_UPSTREAM="192.168.1.47:18789"
+fi
 sed -e 's/ai-claudecode-web:8899/127.0.0.1:8899/g' \
     -e 's/ai-claudecode-web:8127/127.0.0.1:18127/g' \
     -e 's/ai-claudecode-web:8000/127.0.0.1:8000/g' \
     -e 's/ai-claudecode-web:9001/127.0.0.1:9001/g' \
-    -e 's/openclaw:18789/127.0.0.1:18789/g' \
+    -e "s|openclaw:18789|$OC_UPSTREAM|g" \
     -e "s|/data/caddy/certs/|$AIB/caddy-data/caddy/certs/|g" \
     "$AIB/Caddyfile" > /etc/caddy/Caddyfile
-log "Caddyfile derived (loopback upstreams + certs path) from $AIB/Caddyfile"
+log "Caddyfile derived (loopback upstreams + certs path; /openclaw -> $OC_UPSTREAM)"
 
 # ---------------------------------------------------- service supervision ---
 # Each service = one launcher script (rootfs/usr/local/bin/oc-svc-*.sh) run by
@@ -129,7 +140,8 @@ sup_loop() {
 
 sup_loop ollama    /usr/local/bin/oc-svc-ollama.sh
 sup_loop ollama2   /usr/local/bin/oc-svc-ollama2.sh
-sup_loop openclaw  /usr/local/bin/oc-svc-openclaw.sh
+[ "$OPENCLAW_ENABLED" = "true" ] && sup_loop openclaw /usr/local/bin/oc-svc-openclaw.sh \
+    || log "openclaw disabled by option (NAS gateway keeps serving /openclaw)"
 [ "$CHROMIUM_ENABLED" = "true" ] && sup_loop chromium /usr/local/bin/oc-chromium.sh \
     || log "chromium disabled by option"
 sup_loop app       /usr/local/bin/oc-svc-app.sh

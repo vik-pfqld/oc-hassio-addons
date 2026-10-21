@@ -32,6 +32,7 @@ chromium \
     --remote-debugging-port=9223 \
     --disable-dev-shm-usage \
     --disable-crash-reporter \
+    --no-sandbox \
     --no-first-run \
     --lang=en-AU &
 echo "[oc-chromium] chromium started (cdp 127.0.0.1:9223, user-data-dir=$PROFILE)"
