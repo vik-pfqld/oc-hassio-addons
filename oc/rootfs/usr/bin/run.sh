@@ -163,6 +163,37 @@ sed -e 's/ai-claudecode-web:8899/127.0.0.1:8899/g' \
     "$AIB/Caddyfile" > /etc/caddy/Caddyfile
 log "Caddyfile derived (loopback upstreams; /openclaw -> $OC_UPSTREAM)"
 
+# OC-PORT routes (v2.1): every internal service reachable through the single
+# caddy door so the individual host ports can be unpublished later. Idempotent:
+# drop the site's trailing "}" and re-close after appending our handles.
+# (caddy routes by path specificity, so these sit fine alongside the original
+# handles; /ttyd uses handle_path so ttyd itself needs no --base-path.)
+sed -i '$d' /etc/caddy/Caddyfile
+cat >> /etc/caddy/Caddyfile <<'OCROUTES'
+
+    # ---- OC internal ports via the one caddy door (oc-hassio-addons) ----
+    handle /ttyd/* {
+        reverse_proxy 127.0.0.1:7681
+    }
+    handle /ollama/* {
+        reverse_proxy 127.0.0.1:11434
+    }
+    handle /ollama2/* {
+        reverse_proxy 127.0.0.1:11435
+    }
+    handle /cdp/* {
+        reverse_proxy 127.0.0.1:9222
+    }
+    handle /vnc/* {
+        reverse_proxy 127.0.0.1:8300
+    }
+    redir /ttyd  /ttyd/
+    redir /ollama /ollama/
+    redir /ollama2 /ollama2/
+}
+OCROUTES
+log "OC-PORT routes appended to derived Caddyfile"
+
 # ---------------------------------------------------- service supervision ---
 # Each service = one launcher script (rootfs/usr/local/bin/oc-svc-*.sh) run by
 # a background loop that respawns it forever. run.sh itself is PID 1 (tini) —
