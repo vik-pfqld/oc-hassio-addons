@@ -89,6 +89,17 @@ rm -rf /workspace && ln -s /data/workspace /workspace
 # under /data/viewer-work, see below).
 rm -rf /data/workspace/downloads && ln -s "$AIB/workspace/downloads" /data/workspace/downloads
 
+# venv interpreter repair: CIFS drops symlinks, so the copied venvs have no
+# bin/python*. Recreate them (idempotent, both venvs).
+for VP in /data/workspace/.venv /data/workspace/property_tracker/.venv; do
+    if [ -d "$VP/bin" ] && [ ! -e "$VP/bin/python" ]; then
+        ln -sf /usr/bin/python3 "$VP/bin/python3.11"
+        ln -sf python3.11 "$VP/bin/python3"
+        ln -sf python3.11 "$VP/bin/python"
+        log "repaired venv interpreter symlinks: $VP"
+    fi
+done
+
 # Scrolller viewer local index root: its DB is <root>/_browser_state.sqlite3
 # (viewer.py:43) inside the scanned root — give it a LOCAL root with
 # subfolder symlinks into the shared downloads so it never double-writes the
