@@ -97,14 +97,17 @@ ln -sfn "$AIB/ollama2-data" "$AIB/ollama2-home/.ollama"
 mkdir -p "$AIB/chrome-profile"
 
 # Caddyfile: derive the loopback variant from the NAS original every boot.
+# Also rewrite the absolute /data/caddy/certs path (the old container bound
+# caddy-data at /data; this add-on shares the real path directly).
 mkdir -p /etc/caddy
 sed -e 's/ai-claudecode-web:8899/127.0.0.1:8899/g' \
     -e 's/ai-claudecode-web:8127/127.0.0.1:18127/g' \
     -e 's/ai-claudecode-web:8000/127.0.0.1:8000/g' \
     -e 's/ai-claudecode-web:9001/127.0.0.1:9001/g' \
     -e 's/openclaw:18789/127.0.0.1:18789/g' \
+    -e "s|/data/caddy/certs/|$AIB/caddy-data/caddy/certs/|g" \
     "$AIB/Caddyfile" > /etc/caddy/Caddyfile
-log "Caddyfile derived (loopback upstreams) from $AIB/Caddyfile"
+log "Caddyfile derived (loopback upstreams + certs path) from $AIB/Caddyfile"
 
 # ---------------------------------------------------- service supervision ---
 # Each service = one launcher script (rootfs/usr/local/bin/oc-svc-*.sh) run by
