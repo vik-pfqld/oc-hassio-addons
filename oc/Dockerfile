@@ -19,7 +19,7 @@ USER root
 RUN apt-get update -qq \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
       python3 python3-pip python3-venv curl ca-certificates cron tmux jq socat \
-      xz-utils unzip git xvfb x11vnc websockify novnc chromium fonts-liberation \
+      xz-utils unzip git zstd xvfb x11vnc websockify novnc chromium fonts-liberation \
  && rm -rf /var/lib/apt/lists/*
 
 # Caddy — prebuilt binary from the official download API.
@@ -27,11 +27,12 @@ RUN curl -fsSL "https://caddyserver.com/api/download?os=linux&arch=amd64" \
       -o /usr/local/bin/caddy && chmod 0755 /usr/local/bin/caddy
 
 # Ollama — official static tarball (binary + libs only, no GPU needed: these
-# instances are pure :cloud relays with zero local models).
-RUN curl -fsSL -o /tmp/ollama.tgz \
-      "https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tgz" \
- && tar -C /usr -xzf /tmp/ollama.tgz \
- && rm -f /tmp/ollama.tgz && chmod 0755 /usr/bin/ollama
+# instances are pure :cloud relays with zero local models). The linux asset
+# is .tar.zst as of ollama v0.40.x.
+RUN curl -fsSL -o /tmp/ollama.tar.zst \
+      "https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tar.zst" \
+ && tar --zstd -C /usr -xf /tmp/ollama.tar.zst \
+ && rm -f /tmp/ollama.tar.zst && chmod 0755 /usr/bin/ollama
 
 COPY rootfs/ /
 
