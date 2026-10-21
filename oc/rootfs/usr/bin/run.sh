@@ -66,11 +66,6 @@ export OPENCLAW_CUSTOM_BIND_HOST=0.0.0.0
 export OPENCLAW_GATEWAY_INSECURE=true
 export OPENCLAW_CONTROL_UI_ALLOW_INSECURE_AUTH=true
 export GATEWAY_ALLOW_UNCONFIGURED=true
-export OPENCLAW_GATEWAY_PASSWORD=ollama
-export ANTHROPIC_API_KEY="local_ollama_bypass"
-export ANTHROPIC_MODEL="glm-5.2:cloud"
-export ANTHROPIC_DEFAULT_SONNET_MODEL="qwen3.6:cloud"
-export ANTHROPIC_DEFAULT_OPUS_MODEL="minimax-m2.7:cloud"
 export PYTHONUNBUFFERED=1
 
 # --------------------------------------------------------- mount + symlinks -
