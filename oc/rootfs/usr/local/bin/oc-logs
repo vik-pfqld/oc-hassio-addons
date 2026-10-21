@@ -1,0 +1,25 @@
+#!/bin/bash
+# oc-logs [-f] [names...] — read oc add-on service logs.
+#   oc-logs                 all services, last 60 lines each
+#   oc-logs caddy chromium  named services, last 60 lines
+#   oc-logs -f openclaw     follow (all or named)
+# Services: ollama ollama2 openclaw caddy chromium app
+set -u
+TAIL_N=60
+sel() {
+    if [ "$#" -gt 0 ]; then
+        for n in "$@"; do ls "/run/oc-log-$n.log" 2>/dev/null; done
+    else
+        ls /run/oc-log-*.log 2>/dev/null
+    fi
+}
+if [ "${1:-}" = "-f" ]; then
+    shift
+    exec tail -F $(sel "$@") 2>/dev/null
+fi
+FILES="$(sel "$@")"
+[ -n "$FILES" ] || { echo "no oc service logs yet"; exit 0; }
+for f in $FILES; do
+    echo "===== $(basename "$f") ====="
+    tail -n "$TAIL_N" "$f"
+done

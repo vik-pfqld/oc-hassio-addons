@@ -38,7 +38,7 @@ COPY rootfs/ /
 
 # Ensure the bundled scripts are executable regardless of git exec-bit loss.
 RUN chmod 0755 /usr/bin/run.sh /usr/bin/oc-chromium-pass \
-      /usr/local/bin/oc-chromium.sh /usr/local/bin/oc-svc-*.sh
+      /usr/local/bin/oc-chromium.sh /usr/local/bin/oc-logs /usr/local/bin/oc-svc-*.sh
 
 # The HA add-on runs as root; tini (from the base image) reaps the
 # supervisor's children.

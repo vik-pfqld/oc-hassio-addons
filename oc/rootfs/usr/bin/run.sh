@@ -118,8 +118,8 @@ sup_loop() {
     (
       while true; do
           echo "[oc-svc:$name] starting $script"
-          "$script"
-          echo "[oc-svc:$name] EXITED rc=$? — respawn in 3s"
+          "$script" >> "/run/oc-log-$name.log" 2>&1
+          echo "[oc-svc:$name] EXITED rc=$? (see /run/oc-log-$name.log) — respawn in 3s"
           sleep 3
       done
     ) &
